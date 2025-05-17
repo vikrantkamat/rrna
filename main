@@ -1,0 +1,156 @@
+import os
+import sys
+import random
+import math
+from collections import Counter
+
+def generate_random_dna(length=100, gc_content=0.5):
+    """Generate a random DNA sequence with specified GC content"""
+    bases = []
+    for _ in range(length):
+        if random.random() < gc_content:
+            bases.append(random.choice(['G', 'C']))
+        else:
+            bases.append(random.choice(['A', 'T']))
+    return ''.join(bases)
+
+def introduce_mutations(sequence, mutation_rate=0.01):
+    """Introduce random mutations in a DNA sequence"""
+    bases = list(sequence)
+    for i in range(len(bases)):
+        if random.random() < mutation_rate:
+            bases[i] = random.choice(['A', 'T', 'G', 'C'])
+    return ''.join(bases)
+
+def calculate_hamming_distance(seq1, seq2):
+    """Calculate Hamming distance between two sequences"""
+    return sum(c1 != c2 for c1, c2 in zip(seq1, seq2))
+
+def count_kmers(sequence, k=3):
+    """Count k-mers in a sequence"""
+    kmers = Counter()
+    for i in range(len(sequence) - k + 1):
+        kmer = sequence[i:i+k]
+        kmers[kmer] += 1
+    return kmers
+
+def simple_pipeline():
+    """Run a simplified 16S rRNA analysis pipeline"""
+    print("\n=== Simplified 16S rRNA Analysis Pipeline ===\n")
+    
+    # Create output directory
+    output_dir = "simple_results"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    # Step 1: Generate sequences
+    print("Step 1: Generating sequences...")
+    
+    # Generate a reference sequence
+    reference = generate_random_dna(length=200, gc_content=0.55)
+    
+    # Generate sequences for different strains with varying mutation rates
+    strains = {
+        "Strain_A": introduce_mutations(reference, 0.01),
+        "Strain_B": introduce_mutations(reference, 0.02),
+        "Strain_C": introduce_mutations(reference, 0.05),
+        "Strain_D": introduce_mutations(reference, 0.01)
+    }
+    
+    # Save sequences to file
+    seq_file = os.path.join(output_dir, "sequences.fasta")
+    with open(seq_file, "w") as f:
+        f.write(f">Reference\n{reference}\n")
+        for name, seq in strains.items():
+            f.write(f">{name}\n{seq}\n")
+    
+    print(f"Generated sequences for {len(strains)} strains")
+    print(f"Saved sequences to {seq_file}")
+    
+    # Step 2: Calculate distances
+    print("\nStep 2: Calculating distances between strains...")
+    
+    distances = {}
+    for name1, seq1 in strains.items():
+        distances[name1] = {}
+        for name2, seq2 in strains.items():
+            if name1 != name2:
+                dist = calculate_hamming_distance(seq1, seq2)
+                distances[name1][name2] = dist
+    
+    # Save distance matrix
+    dist_file = os.path.join(output_dir, "distances.txt")
+    with open(dist_file, "w") as f:
+        f.write("Strain\t" + "\t".join(strains.keys()) + "\n")
+        for name1 in strains:
+            f.write(name1)
+            for name2 in strains:
+                if name1 == name2:
+                    f.write("\t0")
+                else:
+                    f.write(f"\t{distances[name1][name2]}")
+            f.write("\n")
+    
+    print(f"Calculated distances between all strains")
+    print(f"Saved distance matrix to {dist_file}")
+    
+    # Step 3: Analyze k-mer profiles
+    print("\nStep 3: Analyzing k-mer profiles...")
+    
+    kmer_profiles = {}
+    for name, seq in strains.items():
+        kmer_profiles[name] = count_kmers(seq, k=3)
+    
+    # Save k-mer profiles
+    kmer_file = os.path.join(output_dir, "kmer_profiles.txt")
+    with open(kmer_file, "w") as f:
+        # Get all unique k-mers
+        all_kmers = set()
+        for profile in kmer_profiles.values():
+            all_kmers.update(profile.keys())
+        
+        # Write header
+        f.write("Strain\t" + "\t".join(sorted(all_kmers)) + "\n")
+        
+        # Write profiles
+        for name, profile in kmer_profiles.items():
+            f.write(name)
+            for kmer in sorted(all_kmers):
+                f.write(f"\t{profile.get(kmer, 0)}")
+            f.write("\n")
+    
+    print(f"Analyzed k-mer profiles for all strains")
+    print(f"Saved k-mer profiles to {kmer_file}")
+    
+    # Step 4: Generate a simple text-based tree
+    print("\nStep 4: Generating a simple text-based phylogenetic tree...")
+    
+    # Calculate average distances
+    avg_distances = {}
+    for name, dist_dict in distances.items():
+        avg_distances[name] = sum(dist_dict.values()) / len(dist_dict)
+    
+    # Sort strains by average distance
+    sorted_strains = sorted(avg_distances.items(), key=lambda x: x[1])
+    
+    # Generate a simple text tree
+    tree_file = os.path.join(output_dir, "simple_tree.txt")
+    with open(tree_file, "w") as f:
+        f.write("Simple Phylogenetic Tree:\n\n")
+        f.write("Root\n")
+        
+        for i, (name, avg_dist) in enumerate(sorted_strains):
+            indent = "  " * (i + 1)
+            f.write(f"{indent}|-- {name} (distance: {avg_dist:.2f})\n")
+    
+    print(f"Generated a simple phylogenetic tree")
+    print(f"Saved tree to {tree_file}")
+    
+    print("\n=== Pipeline Complete ===\n")
+    print(f"All results saved to {output_dir}")
+
+if __name__ == "__main__":
+    try:
+        simple_pipeline()
+    except Exception as e:
+        print(f"\nError: {e}")
