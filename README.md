@@ -1,0 +1,1 @@
+A computational algorithm using open source software packages, python, biopython, and the ribosomal database to build a comparison pipeline that can differentiate between various bacterial strains of the 16s rRNA subregion of DNA fragments.
